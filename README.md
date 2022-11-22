@@ -1,2 +1,2 @@
 # ansible-redis-sentinel-cluster
-Example
+Role for setup a 3-nodes redis cluster with Sentinel
