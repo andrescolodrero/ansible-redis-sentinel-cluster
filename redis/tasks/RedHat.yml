@@ -1,0 +1,82 @@
+
+
+- name: Get Installed Version of redis 
+  command: "/usr/local/bin/redis-server --version"
+  ignore_errors: true
+  changed_when: false
+  failed_when: false
+  register:  redis_installed_version
+
+- name: Set Fact install ifd redis installed
+  set_fact:   
+    is_redis_installed: true 
+  when: redis_installed_version.rc == 0
+  
+- name: debug ss
+  debug:  
+    msg: 
+      - "{{ is_redis_installed }}"
+      - "{{ not is_redis_installed }}"
+      - "{{ redis_upgrade }}"
+      - "{{ redis_installed_version }}"
+
+- name: Set fact Install redis if all conditions met
+  set_fact:   
+    redis_force_install: true
+  when: not (is_redis_installed ) or redis_upgrade 
+
+
+- name: Performimg install in the sevrers.
+  debug:
+    msg:
+    - "{{ redis_force_install }}"
+
+- name: Download Redis
+  when:  redis_force_install
+  get_url:
+    url: "https://download.redis.io/redis-stable.tar.gz"
+    dest: "/tmp/redis-stable.tar.gz"
+    mode: 0644
+    checksum: "sha256:2d6a3f57d965cf629ccd0ff8a7f23dd5d52e45c5d3cc1d3d733e0127768ddad3"
+
+- name: Extract archive
+  unarchive:
+    src: "/tmp/redis-stable.tar.gz"
+    dest: /tmp/
+    copy: false
+  when:  redis_force_install
+
+- name: Check if MAke and gcc Installed
+  yum:
+    name: 
+      - make
+      - gcc
+
+- name: Build redis
+  command: make
+  args:
+    chdir: "/tmp/redis-stable"
+  when:  redis_force_install
+
+- name: Install redis
+  become: true
+  command: make install
+  args:
+    chdir: "/tmp/redis-stable"
+  when:  redis_force_install
+# Copy: This should be double checked stopping/restarting redis when doing upgrade
+- name: Copy Executables
+  copy:
+    src: "/usr/local/bin/{{ redis_item }}"
+    dest: "/usr/bin/"
+    mode: 0755
+  loop_control:
+        loop_var: redis_item
+  loop:
+    - redis-server
+    - redis-sentinel
+    - redis-cli
+    - redis-check-aof
+    - redis-check-rdb
+    - redis-benchmark
+

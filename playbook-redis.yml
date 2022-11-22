@@ -1,0 +1,14 @@
+---
+- hosts: all
+  become: yes
+  vars_files:
+    - "../group_vars/{{ env }}/redis/secrets.yml"
+
+  roles:
+    - name: redis
+      role: ../roles/redis
+      tags: ['redis']
+
+
+
+

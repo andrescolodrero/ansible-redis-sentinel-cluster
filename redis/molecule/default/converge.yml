@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    # replace these tasks with whatever you find suitable to test
+    
+    - name: "Include redis"
+      include_role:
+        name: "redis"

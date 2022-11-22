@@ -1,0 +1,38 @@
+---
+- name: Test Status and Authentication of Master
+  command: "{{ redis_command }} -p {{ redis_port }} ping"
+  when: inventory_hostname in groups['redis_master']
+  register: masterNodesTest1
+
+- name: Result Test Status and Authentication of Master
+  debug:
+    msg: " Server status:  {{ masterNodesTest1.stdout_lines }}"
+  when: inventory_hostname in groups['redis_master']
+
+- name: Test Status and Authentication of Slave Nodes
+  command: "{{ redis_command }} -p {{ redis_port }} ping"
+  when: inventory_hostname in groups['redis_slave']
+  register: slavesNodesTest1
+
+- name: Result 
+  debug:
+    msg: " Server status:  {{ slavesNodesTest1.stdout_lines }}"
+  when: inventory_hostname in groups['redis_slave']
+
+
+- name: Check Sentinel Server status and Master Replicat
+  command: "{{ redis_sentinel_command }} -p 26379 sentinel master {{ sentinel_master_name }}"
+  when: inventory_hostname in groups['redis_master']
+  register: sentinelstatus
+
+- name: Test result
+  debug:
+    msg: " Sentinel Status:  {{ sentinelstatus }}"
+
+#
+- name: Check Redis Master Server status
+  command: "{{ redis_command }} -p {{ redis_port }} info replication"
+  when: inventory_hostname in groups['redis_master']
+  register: test
+
+

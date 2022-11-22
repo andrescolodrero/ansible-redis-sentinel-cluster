@@ -1,0 +1,24 @@
+---
+- name: Converge
+  hosts: all
+  vars_files:
+  - "secrets.yml"
+  vars: 
+    - redis_start_service: "true"
+  tasks:
+    # This tasks define what to test
+    - name: "run redis interactive"
+      shell: "nohup redis-server /etc/redis/redis.conf &"
+      ignore_errors: true
+    
+    - name: "run sentinel interactive"
+      shell: "nohup redis-server /etc/redis/sentinel.conf --sentinel &"
+      ignore_errors: true
+      
+    - name: "Include redis"
+      include_role:
+        name: "redis"
+    
+    
+   
+   

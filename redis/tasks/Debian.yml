@@ -1,0 +1,38 @@
+# Installation
+- name: Add an Apt signing key
+  apt_key:
+    url: https://artifactory.arionbanki.is/artifactory/linux-artifacts/redis/redis-gpg
+    keyring: /usr/share/keyrings/redis-archive-keyring.gpg
+    state: present
+  when: ansible_os_family == 'Debiaan'
+
+- name: Add redis repository (Ubuntu/stable)
+  ansible.builtin.apt_repository:
+    repo: deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://artifactory.arionbanki.is/artifactory/redis-remote/deb {{ ansible_distribution_release }} main
+    filename: redis
+    state: present
+
+  when: ansible_os_family == 'Debiana'
+
+- name: Install redis 7
+  apt: 
+    name: redis
+    state: present
+
+- name: Get stats /lib/systemd/system/redis-server.service
+  stat:
+    path: /lib/systemd/system/redis-server.service
+  register: redis_server_service_name
+
+- name: Disable DEfault Systemd from Redis
+  ansible.builtin.systemd:
+    name: redis-server
+    enabled: no
+    state: stopped
+    daemon_reload: yes
+  tags: notest
+
+- name: Remove redis-server.service
+  file:
+    path: /lib/systemd/system/redis-server.service
+  when: redis_server_service_name.stat.exists

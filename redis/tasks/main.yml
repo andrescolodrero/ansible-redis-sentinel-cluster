@@ -1,0 +1,93 @@
+# System prerequisites
+---
+
+- name: Ensure System prerequisites
+  include_tasks: pre-install.yml
+
+# Installation
+- name: Install prerequisite packages
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+# Redis COnfig
+- name: Ensure Redis configuration dir exists.
+  file:
+    path: "{{ redis_conf_path | dirname }}"
+    state: directory
+    mode: 0755
+    #mode: 0740
+
+- name: Ensure Redis is configured.
+  template:
+    src: redis.conf.j2
+    dest: "{{ redis_conf_path }}"
+    mode: "{{ redis_conf_mode }}"
+  register: redis_conf
+  changed_when: true
+  notify:
+    - restart redis
+
+
+# ON redis/, systemd comes preinstalled
+- name: Setup redis SYSTEMD
+  template:
+    src: "redis.service.j2"
+    dest: "/etc/systemd/system/redis.service"
+    mode: 0644
+  notify:
+    - reload systemd
+    - restart redis
+  tags: notest
+  when: redis_set_systemd 
+
+
+- name: Setup ACl Control rules
+  template:
+    src: "users.acl.j2"
+    dest: "{{ redis_aclfile }}"
+    mode: 0644
+  register: users_conf
+  notify:
+    - reload redis acl
+
+
+- name: Ensure Sentinel is configured.
+  template:
+    src: sentinel.conf.j2
+    dest: "{{ sentinel_conf_path }}"
+    mode: 0644
+  register: sentinel_conf
+  changed_when: true
+  notify:
+    - restart sentinel
+
+
+- name: Setup Sentinel Systemd
+  template:
+    src: "sentinel.service.j2"
+    dest: "/etc/systemd/system/sentinel.service"
+    mode: 0644
+  when: redis_set_systemd 
+
+
+- name: Enable Redis-Service
+  ansible.builtin.systemd:
+    name: redis
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  tags: notest
+
+- name: Enable Sentinel-Service
+  ansible.builtin.systemd:
+    name: sentinel
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  tags: notest
+
+- name: Flush handlers
+  meta: flush_handlers
+
+
+- name:  Run Tests during playbook
+  include_tasks: healthcheck.yml

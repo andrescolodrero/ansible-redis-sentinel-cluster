@@ -1,0 +1,5 @@
+{% for redis_user in redis_users %}
+user {{ redis_user.name }} on >{{ redis_user.password }} {{ redis_user.command }}
+{% endfor %}
+
+

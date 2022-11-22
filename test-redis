@@ -1,0 +1,19 @@
+all:
+
+  vars:
+    env: test
+    redis_masterip: 10.20.192.105
+
+redis_master:
+  hosts:
+    tisrbqx60.center1.ad.local: 
+
+  vars:
+    redis_is_master: true
+
+redis_slave:
+  hosts:
+    tisrbqc61.center1.ad.local:
+    tisrbqc62.center1.ad.local:
+  vars:
+    redis_is_master: false

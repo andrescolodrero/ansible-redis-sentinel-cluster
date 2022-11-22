@@ -1,0 +1,117 @@
+# {{ ansible_managed }}
+# Do not edit the file here, manage redis configuration via Pull requests
+################################## NETWORK #####################################
+port {{ redis_port }}
+# Disable bind, bind in all interfaces
+#bind {{ redis_bind_interface }} {{ ansible_default_ipv4.address }}
+tcp-keepalive 300
+
+{% if redis_unixsocket %}
+unixsocket {{ redis_unixsocket }}
+{% endif %}
+# Close the connection after a client is idle for N seconds (0 to disable). NOTE: Actual config is disabled
+timeout {{ redis_timeout }}
+
+################################## TLS SETTINGS #####################################
+
+
+################################# GENERAL #####################################
+
+daemonize no
+supervised systemd
+pidfile {{ redis_pidfile }}
+
+# Logging
+loglevel {{ redis_loglevel }}
+logfile {{ redis_logfile }}
+
+
+databases {{ redis_databases }}
+################################ SNAPSHOTTING  ################################ 
+{% for save in redis_save %}
+save {{ save }}
+{% endfor %}
+
+stop-writes-on-bgsave-error yes
+
+rdbcompression {{ redis_rdbcompression }}
+dbfilename {{ redis_dbfilename }}
+dir {{ redis_dbdir }}
+
+### MAX VALUES ####
+ maxclients {{ redis_maxclients }}
+
+############################## MEMORY MANAGEMENT ################################
+# The volatile-lru and volatile-random policies are mainly useful when you want to use a
+# single instance for both caching and to have a set of persistent keys
+{% if redis_maxmemory %}
+maxmemory {{ redis_maxmemory }}
+maxmemory-policy {{ redis_maxmemory_policy }}
+maxmemory-samples {{ redis_maxmemory_samples }}
+{% endif %}
+############################# LAZY FREEING ####################################
+lazyfree-lazy-eviction no
+lazyfree-lazy-expire no
+lazyfree-lazy-server-del no
+replica-lazy-flush no
+lazyfree-lazy-user-del no
+lazyfree-lazy-user-flush no
+
+################################ THREADED I/O #################################
+# TODO: DO only if machines are  > 4 cores
+#  io-threads 4
+
+############################## APPEND ONLY MODE ###############################
+appendonly {{ redis_appendonly }}
+appendfsync {{ redis_appendfsync }}
+appendfilename "appendonly.aof"
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+aof-load-truncated yes
+aof-use-rdb-preamble yes
+aof-timestamp-enabled no
+
+################################## SLOW LOG ###################################
+# # The Redis Slow Log is a system to log queries that exceeded a specified
+# execution time
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+
+################################ LATENCY MONITOR ##############################
+
+{% for redis_disabled_command in redis_disabled_commands %}
+rename-command {{ redis_disabled_command }} ""
+{% endfor %}
+# TCP listen() backlog. 
+# 
+# In high requests-per-second environments you need an high backlog in order 
+# to avoid slow clients connections issues. Note that the Linux kernel 
+# will silently truncate it to the value of /proc/sys/net/core/somaxconn so 
+# make sure to raise both the value of somaxconn and tcp_max_syn_backlog 
+# in order to get the desired effect.
+tcp-backlog {{ redis_tcpbacklog }}
+
+#### Replication  #########################################
+{% if redis_is_master %}
+protected-mode no
+
+{% else %}
+replicaof {{ redis_masterip }} {{ redis_port }}
+protected-mode no
+{% endif %}
+requirepass {{ redis_replica_password }}
+masterauth {{ redis_replica_password }}
+masteruser {{ redis_replica_user }}
+# Values for Replica Configuration
+#slave-serve-stale-data: {{ redis_slave_serve_stale_data }}
+#slave-read-only: {{ redis_slave_serve_stale_data }} 
+
+#MOnitor Latencym milliseconds
+latency-monitor-threshold 100
+
+################### ACL ##################
+aclfile {{ redis_aclfile }}
+# Limit acl log entries that are stored on memory
+acllog-max-len 10
+#################### end ###########
